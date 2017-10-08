@@ -27,156 +27,161 @@ from bpy.types import (Panel,
                        PropertyGroup,
                        AddonPreferences,
                        )
-                       
+
+
 # ------------------------------------------------------------------------
 #    functions
 # ------------------------------------------------------------------------
-def updatePreviewCube(self, context):
+def update_preview_cube(self, context):
     addon_name = __name__.split('.')[0]
     prefs = context.user_preferences.addons[addon_name].preferences
     scene = context.scene
-    q3mapImportTool = scene.q3mapImportTool
-    basePath = prefs.base_path
-    shaderPath = prefs.shader_dir
-    
+    q3_map_import_tool = scene.q3_map_import_tool
+    base_path = prefs.base_path
+    shader_path = prefs.shader_dir
+
     try:
-        shaderCube = bpy.data.objects["ShaderPreviewCube"]
-        mesh = shaderCube.data
+        shader_cube = bpy.data.objects["ShaderPreviewCube"]
+        mesh = shader_cube.data
     except:
         # Create an empty mesh and the object.
         mesh = bpy.data.meshes.new('ShaderPreviewCube')
-        shaderCube = bpy.data.objects.new("ShaderPreviewCube", mesh)
-        
+        shader_cube = bpy.data.objects.new("ShaderPreviewCube", mesh)
+
         # Add the object into the scene.
-        scene.objects.link(shaderCube)
-        scene.objects.active = shaderCube
-        shaderCube.select = True
-        
+        scene.objects.link(shader_cube)
+        scene.objects.active = shader_cube
+        shader_cube.select = True
+
         # Construct the bmesh cube and assign it to the blender mesh.
         bm = bmesh.new()
         bmesh.ops.create_cube(bm, size=10.0)
         bm.to_mesh(mesh)
         bm.free()
-        
+
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.mesh.select_all(action='INVERT')
         bpy.ops.uv.reset()
         bpy.ops.object.mode_set(mode='OBJECT')
-        
+
         mesh = scene.objects["ShaderPreviewCube"].data
         mesh.uv_textures[0].name = "UVMap"
-        
-    counter = 0
-    for mat in mesh.materials:
-        if (mat.name.lower().strip(" \t\r\n") == scene.q3mapImportTool.shader.lower().strip(" \t\r\n")):
-            mesh.polygons[0].material_index = counter
-            mesh.polygons[1].material_index = counter
-            mesh.polygons[2].material_index = counter
-            mesh.polygons[3].material_index = counter
-            mesh.polygons[4].material_index = counter
-            mesh.polygons[5].material_index = counter
+
+    for (index, mat) in enumerate(mesh.materials):
+        if mat.name.lower().strip(" \t\r\n") == scene.q3_map_import_tool.shader.lower().strip(" \t\r\n"):
+            mesh.polygons[0].material_index = index
+            mesh.polygons[1].material_index = index
+            mesh.polygons[2].material_index = index
+            mesh.polygons[3].material_index = index
+            mesh.polygons[4].material_index = index
+            mesh.polygons[5].material_index = index
             break
-        counter += 1
-  
-def previewShader(self, context):
-    
+
+
+def preview_shader(self, context):
     addon_name = __name__.split('.')[0]
     prefs = context.user_preferences.addons[addon_name].preferences
     scene = context.scene
-    q3mapImportTool = scene.q3mapImportTool
-    
-    basePath = prefs.base_path
-    shaderPath = prefs.shader_dir
+    q3_map_import_tool = scene.q3_map_import_tool
+
+    base_path = prefs.base_path
+    shader_path = prefs.shader_dir
 
     try:
-        shaderCube = bpy.data.objects["ShaderPreviewCube"]
+        shader_cube = bpy.data.objects["ShaderPreviewCube"]
         mesh = scene.objects["ShaderPreviewCube"].data
         mesh.materials.clear()
         mesh.uv_textures[0].name = "UVMap"
     except:
         # Create an empty mesh and the object.
         mesh = bpy.data.meshes.new('ShaderPreviewCube')
-        shaderCube = bpy.data.objects.new("ShaderPreviewCube", mesh)
-        
+        shader_cube = bpy.data.objects.new("ShaderPreviewCube", mesh)
+
         # Add the object into the scene.
-        scene.objects.link(shaderCube)
-        scene.objects.active = shaderCube
-        shaderCube.select = True
-        
+        scene.objects.link(shader_cube)
+        scene.objects.active = shader_cube
+        shader_cube.select = True
+
         # Construct the bmesh cube and assign it to the blender mesh.
         bm = bmesh.new()
         bmesh.ops.create_cube(bm, size=10.0)
         bm.to_mesh(mesh)
         bm.free()
-        
+
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.mesh.select_all(action='INVERT')
         bpy.ops.uv.reset()
         bpy.ops.object.mode_set(mode='OBJECT')
-        
+
         mesh = scene.objects["ShaderPreviewCube"].data
         mesh.uv_textures[0].name = "UVMap"
-        
-    shaderList = []
-    shaderList.append(basePath + shaderPath + scene.q3mapImportTool.shaderF + ".shader")
-        
-    for shaderFile in shaderList:
+
+    shader_list = []
+    shader_list.append(base_path + shader_path + scene.q3_map_import_tool.shaderF + ".shader")
+
+    for shader_file in shader_list:
         try:
-            isOpen = 0
-            with open(shaderFile) as lines:
+            is_open = 0
+            with open(shader_file) as lines:
                 for line in lines:
+                    line = line.strip(" \t\r\n")
+
                     #skip empty lines or comments
-                    if ((line.strip(" \t\r\n").startswith('/')) and (line.strip("\t\r\n") != ' ')): 
+                    if not line or line.startswith('/'):
                         continue
+
                     #content
-                    if not(line.strip(" \t\r\n").startswith('{')) and not(line.strip(" \t\r\n").startswith('}')):
-                        if (isOpen == 0):
-                            currentShader = line.strip(" \t\r\n")
+                    if not line.startswith('{') and not line.startswith('}'):
+                        if is_open == 0:
+                            current_shader = line
                     #marker open
-                    if line.strip(" \t\r\n").startswith('{'):
-                        isOpen = isOpen + 1.
+                    elif line.startswith('{'):
+                        is_open = is_open + 1
                     #marker close
-                    if line.strip(" \t\r\n").startswith('}'):
+                    elif line.startswith('}'):
                         #close material
-                        if (isOpen == 1):
+                        if is_open == 1:
                             try:
-                                mesh.materials.append(bpy.data.materials[currentShader])
+                                print("Add {} to materials".format(current_shader))
+                                mesh.materials.append(bpy.data.materials[current_shader])
                             except:
-                                mat = bpy.data.materials.new(name= currentShader)
-                                mesh.materials.append(mat)  
+                                mat = bpy.data.materials.new(name=current_shader)
+                                mesh.materials.append(mat)
                                 mat.use_nodes = True
-                        isOpen -= 1                      
+
+                        is_open -= 1
         except:
-            print (('error in shaderfile ') + shaderFile)
-    
-    q3mapImportTool.onlyPreviewCube = True
+            print (('error in shaderfile ') + shader_file)
+
+    q3_map_import_tool.only_preview_cube = True
     bpy.ops.q3map.interpret_shaders()
-    q3mapImportTool.onlyPreviewCube = False
-            
+    q3_map_import_tool.only_preview_cube = False
+
+
 # ------------------------------------------------------------------------
 #    store properties in the user preferences
 # ------------------------------------------------------------------------
-                       
 class Q3MapHelperAddonPreferences(AddonPreferences):
+
     bl_idname = __name__
 
     base_path = StringProperty(
         name="basepath",
-        description="It's the basepath",
+        description="Path to base folder",
         default="",
         maxlen=2048,
         )
-        
+
     shader_dir = StringProperty(
         name="shader dir",
-        description="It's the shader directory",
+        description="Shader directory name",
         default="shaders\\",
         maxlen=2048,
         )
-        
-    useGPU = BoolProperty(
+
+    use_gpu = BoolProperty(
         name="Enable GPU computing",
         description="This will automaticly make your GPU the cycles rendering device and adjusts tile size accordingly.",
         default = True
@@ -188,167 +193,161 @@ class Q3MapHelperAddonPreferences(AddonPreferences):
         row.prop(self, "base_path")
         row.operator("q3map.get_basepath", icon="FILE_FOLDER", text="")
         layout.prop(self, "shader_dir")
-        layout.prop(self, "useGPU")
-                       
+        layout.prop(self, "use_gpu")
+
+
 # ------------------------------------------------------------------------
 #    store properties in the active scene
 # ------------------------------------------------------------------------
-
 class ImporterSettings(PropertyGroup):
-    
+
     def shaderF_list_cb(self, context):
-        
         addon_name = __name__.split('.')[0]
         prefs = context.user_preferences.addons[addon_name].preferences
-        
-        basePath = prefs.base_path
-        shaderPath = prefs.shader_dir
-        currentShader = ''
-        
-        shaderList = []
+
+        base_path = prefs.base_path
+        shader_dir = os.path.join(base_path, prefs.shader_dir)
+        current_shader = ''
+
+        shader_names = []
         try:
-            currentShader = (basePath + shaderPath)
-            dir = os.listdir(currentShader)
-            for file in dir:
-                currentShader = currentShader + file
-                currentFile = file.split('.')[0]
-                if file.lower().endswith('.shader'):
-                    shaderList.append((currentFile,currentFile,""))
-        except:
-            print ('could not open shader ' + currentShader)
-        return shaderList
-    
+            shader_files = sorted(f for f in os.listdir(shader_dir)
+                                  if f.endswith(".shader"))
+            for shader_file in shader_files:
+                current_shader = os.path.join(shader_dir, shader_file)
+                current_file = shader_file.split('.')[0]
+                shader_names.append(current_file)
+        except Exception as e:
+            print('Could not open shader ' + current_shader + ", error: " + str(e))
+
+        shader_list = [(shader_file, shader_file, "")
+                       for shader_file in sorted(shader_names)]
+        return shader_list
+
     def shader_list_cb(self, context):
-        
         addon_name = __name__.split('.')[0]
         prefs = context.user_preferences.addons[addon_name].preferences
-        
-        basePath = prefs.base_path
-        shaderPath = prefs.shader_dir
-        currentShader = ''
-        
-        shaderList = []
-        shaderList.append(basePath + shaderPath + bpy.context.scene.q3mapImportTool.shaderF + ".shader")
-        items = []
-        for shaderFile in shaderList:
-            try:
-                isOpen = 0
-                with open(shaderFile) as lines:
-                    for line in lines:
-                        #skip empty lines or comments
-                        if ((line.strip(" \t\r\n").startswith('/')) and (line.strip("\t\r\n") != ' ')): 
-                            continue
-                        #content
-                        if not(line.strip(" \t\r\n").startswith('{')) and not(line.strip(" \t\r\n").startswith('}')):
-                            if (isOpen == 0):
-                                currentShader = line.strip(" \t\r\n")
-                        #marker open
-                        if line.strip(" \t\r\n").startswith('{'):
-                            isOpen = isOpen + 1.
-                        #marker close
-                        if line.strip(" \t\r\n").startswith('}'):
-                            #close material
-                            if (isOpen == 1):
-                                items.append((currentShader,currentShader,""))
-                            isOpen -= 1                      
-            except:
-                print (('error in shaderfile ') + shaderFile)
+
+        base_path = prefs.base_path
+        shader_path = prefs.shader_dir
+        current_shader = ''
+
+        shader_file = base_path + shader_path + bpy.context.scene.q3_map_import_tool.shaderF + ".shader"
+        try:
+            is_open = 0
+            shaders = []
+            with open(shader_file) as lines:
+                for line in lines:
+                    #skip empty lines or comments
+                    if line.strip(" \t\r\n").startswith('/') and line.strip("\t\r\n") != ' ':
+                        continue
+
+                    #content
+                    if not line.strip(" \t\r\n").startswith('{') and not line.strip(" \t\r\n").startswith('}'):
+                        if is_open == 0:
+                            current_shader = line.strip(" \t\r\n")
+                    #marker open
+                    elif line.strip(" \t\r\n").startswith('{'):
+                        is_open = is_open + 1
+                    #marker close
+                    elif line.strip(" \t\r\n").startswith('}'):
+                        #close material
+                        if is_open == 1:
+                            shaders.append(current_shader)
+
+                        is_open -= 1
+        except Exception as e:
+            print("error in shaderfile '{}', error: {}".format(shader_file, str(e)))
+
+        items = [(shader, shader, "") for shader in sorted(shaders)]
         return items
-    
-    shaderF = bpy.props.EnumProperty(items=shaderF_list_cb,
-                                    name = "ShaderFile",
-                                    update = previewShader)
-                                    
-    shader = bpy.props.EnumProperty(items=shader_list_cb,
-                                    name = "Material",
-                                    update = updatePreviewCube)
-                                    
+
+    shaderF = bpy.props.EnumProperty(
+        items=shaderF_list_cb,
+        name="ShaderFile",
+        update=preview_shader)
+
+    shader = bpy.props.EnumProperty(
+        items=shader_list_cb,
+        name="Material",
+        update=update_preview_cube)
+
     deluxeMapped = BoolProperty(
         name="is the map deluxe mapped?",
         description="If the map is deluxemapped you will only see Lightmap names that are odd or even",
-        default = False
-        )
-    
+        default=False)
+
     gl2 = BoolProperty(
         name="gl2 Materials",
         description="are there gl2 compatible materials?",
-        default = False
-        )
+        default = False)
 
-    skyNumber = IntProperty(
-        name = "Sky Number",
+    sky_number = IntProperty(
+        name="Sky Number",
         description="",
-        default = 0,
-        min = 0,
-        max = 100
-        )
-        
+        default=0,
+        min=0,
+        max=100)
+
     lmSize = IntProperty(
-        name = "Lightmap Size",
+        name="Lightmap Size",
         description="Texture size for the new lightmaps",
-        default = 128,
-        min = 128,
-        max = 1000000
-        )
+        default=128,
+        min=128,
+        max=1000000)
 
     default_emissive = FloatProperty(
-        name = "Default emissive value",
-        description = "",
-        default = 1.0,
-        min = 0.05,
-        max = 1000.0
-        )
-        
+        name="Default emissive value",
+        description="",
+        default=1.0,
+        min=0.05,
+        max=1000.0)
+
     default_sky_emissive = FloatProperty(
-        name = "Default sky emissive value",
-        description = "",
-        default = 5.0,
-        min = 0.0,
-        max = 1000.0
-        )
-    
+        name="Default sky emissive value",
+        description="",
+        default=5.0,
+        min=0.0,
+        max=1000.0)
+
     default_roughness = FloatProperty(
-        name = "Default roughness value",
-        description = "",
-        default = 0.45,
-        min = 0.0,
-        max = 1.0
-        )
-    
+        name="Default roughness value",
+        description="",
+        default=0.45,
+        min=0.0,
+        max=1.0)
+
     map_name = StringProperty(
         name="map name",
-        description="It's the map name.",
+        description="Map name",
         default="",
-        maxlen=2048,
-        )
+        maxlen=2048)
 
     selectedShaderFile = StringProperty(
         name="ShaderFile:",
         default="",
-        maxlen=2048,
-        )
-        
+        maxlen=2048)
+
     #------------------
     # "private" variables
     #------------------
-    
-    onlyPreviewCube = BoolProperty(
-        name="onlyPreviewCube",
+    only_preview_cube = BoolProperty(
+        name="only_preview_cube",
         description="skip the sky and sun generation?",
-        default = False
-        )
-    
+        default=False)
+
+
 # ------------------------------------------------------------------------
 #    import panel in object mode
 # ------------------------------------------------------------------------
+class ImportPanel(Panel):
 
-class import_panel(Panel):
     bl_idname = "import_panel"
     bl_label = "Lightmapping helper"
-    bl_space_type = "VIEW_3D"   
-    bl_region_type = "TOOLS"    
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "TOOLS"
     bl_category = "Q3 Tools"
-    bl_context = "objectmode"   
+    bl_context = "objectmode"
 
     @classmethod
     def poll(self,context):
@@ -357,43 +356,43 @@ class import_panel(Panel):
     def draw(self, context):
         addon_name = __name__.split('.')[0]
         self.prefs = context.user_preferences.addons[addon_name].preferences
-        
+
         layout = self.layout
         scene = context.scene
-        q3mapImportTool = scene.q3mapImportTool
-        
+        q3_map_import_tool = scene.q3_map_import_tool
+
         box = layout.box()
-        box.prop(q3mapImportTool, "map_name")
+        box.prop(q3_map_import_tool, "map_name")
         box.operator("q3map.import_map")
-        
+
         box = layout.box()
-        box.prop(q3mapImportTool, "gl2")
-        box.prop(q3mapImportTool, "default_emissive")
-        box.prop(q3mapImportTool, "default_roughness")
-        box.prop(q3mapImportTool, "default_sky_emissive")
-        box.prop(q3mapImportTool, "skyNumber")
+        box.prop(q3_map_import_tool, "gl2")
+        box.prop(q3_map_import_tool, "default_emissive")
+        box.prop(q3_map_import_tool, "default_roughness")
+        box.prop(q3_map_import_tool, "default_sky_emissive")
+        box.prop(q3_map_import_tool, "sky_number")
         box.row().separator()
         box.label('This will recreate')
         box.label('all existing textures and shader nodes!')
         box.operator("q3map.interpret_shaders")
-        
+
         box = layout.box()
-        box.prop(q3mapImportTool, "deluxeMapped")
-        box.prop(q3mapImportTool, "lmSize")
+        box.prop(q3_map_import_tool, "deluxeMapped")
+        box.prop(q3_map_import_tool, "lmSize")
         box.operator("q3map.prepare_baking")
         box.operator("q3map.save_baked_lms")
-        
+
+
 # ------------------------------------------------------------------------
 #    import panel in object mode
 # ------------------------------------------------------------------------
-
-class shader_panel(Panel):
+class ShaderPanel(Panel):
     bl_idname = "shader_panel"
     bl_label = "Shader helper"
-    bl_space_type = "VIEW_3D"   
-    bl_region_type = "TOOLS"    
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "TOOLS"
     bl_category = "Q3 Tools"
-    bl_context = "objectmode"   
+    bl_context = "objectmode"
 
     @classmethod
     def poll(self,context):
@@ -402,71 +401,73 @@ class shader_panel(Panel):
     def draw(self, context):
         addon_name = __name__.split('.')[0]
         self.prefs = context.user_preferences.addons[addon_name].preferences
-        
+
         layout = self.layout
         scene = context.scene
-        q3mapImportTool = scene.q3mapImportTool
-        
+        q3_map_import_tool = scene.q3_map_import_tool
+
         box = layout.box()
         box.row().separator()
-        box.prop(q3mapImportTool, "shaderF")
-        box.prop(q3mapImportTool, "shader")
+        box.prop(q3_map_import_tool, "shaderF")
+        box.prop(q3_map_import_tool, "shader")
         box.operator("q3map.add_material")
         box.row().separator()
-    
+
+
 # ------------------------------------------------------------------------
 #    operators
 # ------------------------------------------------------------------------
-                       
 class WMFileSelector(bpy.types.Operator):
+
     bl_idname = "q3map.get_basepath"
     bl_label = "base Path"
 
-    filepath = bpy.props.StringProperty(subtype="FILE_PATH") 
+    filepath = bpy.props.StringProperty(subtype="FILE_PATH")
 
     def execute(self, context):
         addon_name = __name__.split('.')[0]
         self.prefs = context.user_preferences.addons[addon_name].preferences
-        
+
         fdir = self.filepath
         self.prefs.base_path = fdir
-        #context.scene.q3mapImportTool.base_path = fdir
+        #context.scene.q3_map_import_tool.base_path = fdir
         return{'FINISHED'}
-    
+
     def invoke(self, context, event):
         context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'} 
+        return {'RUNNING_MODAL'}
+
 
 class ImportMap(bpy.types.Operator):
+
     bl_idname = "q3map.import_map"
     bl_label = "Import Map"
-    
+
     def execute(self, context):
-        
         addon_name = __name__.split('.')[0]
         self.prefs = context.user_preferences.addons[addon_name].preferences
-        
+
         scene = bpy.context.scene
-        q3mapImportTool = scene.q3mapImportTool
-        basePath = self.prefs.base_path
-        mapName = q3mapImportTool.map_name
+        q3_map_import_tool = scene.q3_map_import_tool
+        base_path = self.prefs.base_path
+        mapName = q3_map_import_tool.map_name
 
         names = []
         values = []
         textures = []
         numEnts = 0
         numLms = 0
-        file = basePath + 'maps/' + mapName 
+        file = base_path + 'maps/' + mapName
 
         #clear meshes
         #for mesh in bpy.data.meshes:
-            #if mesh.users > 0: 
+            #if mesh.users > 0:
                 #mesh.user_clear()
             #bpy.data.meshes.remove(mesh)
-            
+
         #clear meshes
         #for object in bpy.data.objects:
-            #if object.users > 0: 
+            #if object.users > 0:
                 #object.user_clear()
             #bpy.data.objects.remove(object)
 
@@ -495,14 +496,14 @@ class ImportMap(bpy.types.Operator):
             objects = []
             name = 'Lightmap_' + str(i).zfill(4)
             found = False
-            
+
             #find all matching objects per lm id
             for j in range(0,numEnts):
                 if values[j] == i:
                     objects.append(names[j])
-                    
+
             #select objects by lm id
-            for p in objects:   
+            for p in objects:
                 scene.objects[p].select = True
                 obs = scene.objects[p]
                 mesh = obs.data
@@ -510,13 +511,13 @@ class ImportMap(bpy.types.Operator):
                 scene.objects.active = scene.objects[p]
                 found = True
 
-            #join selected objects 
+            #join selected objects
             if found == True:
                 obs.name = name
                 bpy.ops.object.join()
                 bpy.context.scene.objects.active = obs
             print ('Objects with Lightmap number ' + str(i) + ' of ' + str(numLms) + ' joined.')
-                
+
         misc_models = []
         misc_models_origins = []
         misc_models_scales = []
@@ -574,28 +575,28 @@ class ImportMap(bpy.types.Operator):
         #add box placeholders for misc_model_statics or entitys, could be useful for other entities (SomaZ)
         #for mms in range(0, num_misc_models):
             #x,y,z = misc_models_origins[mms].strip("\t\r\n").split(' ', 2)
-            
+
             #add cube as representative for the misc_model_static entity
             #bpy.ops.mesh.primitive_cube_add(location=(float(x)/100,float(y)/100,float(z)/100))
-            
+
             #make cube smaller in the viewport
             #scale = (.2,.2,.1)
             #bpy.ops.transform.resize( value=scale ) #resizes the cube
             #bpy.ops.object.transform_apply( scale=True ) #don't forget to apply!!
-            
+
             #ob = bpy.context.object #stores the active object (the cube created above)
             #ob.name= misc_models[mms]; ob.data.name = ob.name #just naming
-            
+
             #resizes the cube, don't apply scale! We need it for the correct scale of all the entities!
             #scale = (misc_models_scales[mms],misc_models_scales[mms],misc_models_scales[mms])
-            #bpy.ops.transform.resize( value=scale ) 
+            #bpy.ops.transform.resize( value=scale )
 
         #import fitting models
         addedModels = []
         scene_objects = []
         droppedModels = []
         linkedModels = 0
-        for mms in range(0, num_misc_models):   
+        for mms in range(0, num_misc_models):
             toAdd = True
             for name in addedModels:
                 if name == misc_models[mms]:
@@ -603,36 +604,36 @@ class ImportMap(bpy.types.Operator):
             if toAdd:
                 addedModels.append(misc_models[mms]);
                 try:
-                    imported_object = bpy.ops.import_scene.fbx(filepath=(basePath + misc_models[mms][:-4] + 'out.fbx'))
-                    
+                    imported_object = bpy.ops.import_scene.fbx(filepath=(base_path + misc_models[mms][:-4] + 'out.fbx'))
+
                     scene.objects.active = bpy.context.selected_objects[0]
-                    fbx_object = bpy.context.selected_objects[0]   
+                    fbx_object = bpy.context.selected_objects[0]
                     bpy.ops.object.join()
-                    
+
                     fbx_object.name = misc_models[mms][:-4]
                     fbx_object.data.name = misc_models[mms][:-4]
-                    
+
                     mesh = fbx_object.data
                     mesh.uv_textures['DiffuseUV'].name = "UVMap"
-                    
+
                     #apply the given scale, should be 0.01 by default, but we make sure it is
                     scale = (.01,.01,.01)
                     fbx_object.scale = scale
                     bpy.ops.object.transform_apply( scale=True )
-                    
+
                     fbx_object.hide = True
                     fbx_object.hide_render = True
                 except:
                     droppedModels.append(misc_models[mms][:-4] + 'out.fbx')
-                    print ('could not load model: ' + (basePath + misc_models[mms][:-4] + 'out.fbx'))
-                    
+                    print ('could not load model: ' + (base_path + misc_models[mms][:-4] + 'out.fbx'))
+
             # add the misc_model_static linked to the imported model
             try:
                 me = bpy.data.objects[misc_models[mms][:-4]].data
-                ob = bpy.data.objects.new(misc_models[mms], me)        
+                ob = bpy.data.objects.new(misc_models[mms], me)
                 bpy.context.scene.objects.link(ob)
                 bpy.context.scene.update()
-            
+
                 x,y,z = misc_models_origins[mms].strip("\t\r\n").split(' ', 2)
                 ob.location = (float(x)/100,float(y)/100,float(z)/100)
                 scale = (misc_models_scales[mms],misc_models_scales[mms],misc_models_scales[mms])
@@ -641,38 +642,51 @@ class ImportMap(bpy.types.Operator):
                 linkedModels += 1
             except:
                 print ('could not link model: ' + (misc_models[mms][:-4] + ' is not imported (Try exporting the model again from Noesis)'))
-                
+
         if droppedModels:
             print ('Dropped models:')
             print (' ')
         for model in droppedModels:
             print (model)
-            
+
         return{'FINISHED'}
-    
+
+
+class Sun(object):
+
+    def __init__(self, r, g, b, yaw, pitch, intensity):
+        self.r = r
+        self.g = g
+        self.b = b
+        self.yaw = yaw
+        self.pitch = pitch
+        self.intensity = intensity
+
+
 class InterpretShaders(bpy.types.Operator):
+
     bl_idname = "q3map.interpret_shaders"
     bl_label = "Interpret Shaders"
-    
+
     def execute(self, context):
-        
+        print("=================== InterpretShaders.execute =====================")
         addon_name = __name__.split('.')[0]
         self.prefs = context.user_preferences.addons[addon_name].preferences
-        
+
         scene = bpy.context.scene
-        q3mapImportTool = scene.q3mapImportTool
-        basePath = self.prefs.base_path
-        useGPU = self.prefs.useGPU
-        gl2 = q3mapImportTool.gl2
-        onlyPreviewCube = q3mapImportTool.onlyPreviewCube
-        processingObjects = []
-        
-        if (onlyPreviewCube):
-            processingObjects.append(bpy.data.objects["ShaderPreviewCube"])
+        q3_map_import_tool = scene.q3_map_import_tool
+        base_path = self.prefs.base_path
+        use_gpu = self.prefs.use_gpu
+        gl2 = q3_map_import_tool.gl2
+        only_preview_cube = q3_map_import_tool.only_preview_cube
+        processing_objects = []
+
+        if only_preview_cube:
+            processing_objects.append(bpy.data.objects["ShaderPreviewCube"])
         else:
             for obj in scene.objects:
-                processingObjects.append(obj )
-                
+                processing_objects.append(obj)
+
         scene.render.engine = 'CYCLES'
         scene.cycles.transparent_min_bounces = 0
         scene.cycles.min_bounces = 0
@@ -681,8 +695,9 @@ class InterpretShaders(bpy.types.Operator):
         scene.cycles.transmission_bounces = 6
         scene.cycles.caustics_refractive = False
         scene.cycles.caustics_reflective = False
+
         #optimize rendering times
-        if useGPU:
+        if use_gpu:
             scene.cycles.device = 'GPU'
             scene.render.tile_x = 256
             scene.render.tile_y = 256
@@ -690,204 +705,172 @@ class InterpretShaders(bpy.types.Operator):
             scene.cycles.device = 'CPU'
             scene.render.tile_x = 16
             scene.render.tile_y = 16
-        
-        if (gl2):
-            nodeType = "ShaderNodeBsdfPrincipled"
+
+        if gl2:
+            node_type = "ShaderNodeBsdfPrincipled"
         else:
-            nodeType = "ShaderNodeBsdfDiffuse"
-        
-        shaderPath = self.prefs.shader_dir
-        
-        
-        defaultRoughness = q3mapImportTool.default_roughness
-        defaultEmissive = q3mapImportTool.default_emissive
-        defaultSkyEmissive = q3mapImportTool.default_sky_emissive
-        skyNumber = q3mapImportTool.skyNumber
+            node_type = "ShaderNodeBsdfDiffuse"
+
+        shader_path = self.prefs.shader_dir
+
+        default_roughness = q3_map_import_tool.default_roughness
+        default_emissive = q3_map_import_tool.default_emissive
+        default_sky_emissive = q3_map_import_tool.default_sky_emissive
+        sky_number = q3_map_import_tool.sky_number
 
         #delete all material nodes and textures
-        if (not onlyPreviewCube):
+        if not only_preview_cube:
             bpy.ops.object.select_all(action='DESELECT')
             for ob in scene.objects:
                 ob.select = False
+
                 if ob.type == 'MESH' and ob.name.startswith("Sky"):
                     ob.select = True
                     bpy.ops.object.delete()
+
                 if ob.name.startswith("Sun"):
                     ob.select = True
                     bpy.ops.object.delete()
 
-            for img in bpy.data.images: 
+            for img in bpy.data.images:
                 img.user_clear()
-            for img in bpy.data.images: 
+
+            for img in bpy.data.images:
                 if not img.users:
                     bpy.data.images.remove(img)
-                
+
             for tex in bpy.data.textures:
                 tex.user_clear()
+
             for tex in bpy.data.textures:
                 if not tex.users:
                     bpy.data.textures.remove(tex)
-                
-            for a in bpy.data.materials:
-                if a.use_nodes:
-                    a.node_tree.nodes.clear()
-                    node_output = a.node_tree.nodes.new(type='ShaderNodeOutputMaterial')
-                    node_output.location = 400,100
-                    
-                    node_DiffuseBSDF = a.node_tree.nodes.new(type = nodeType)
-                    node_DiffuseBSDF.location = 200,100
-                    node_DiffuseBSDF.name = 'Shader'
-                    
-                    node_Mix = a.node_tree.nodes.new(type='ShaderNodeMixShader')
-                    node_Mix.location = 400,300
-                    
-                    node_Mix.inputs[0].default_value = 1.0
-                    
-                    node_Transparent = a.node_tree.nodes.new(type='ShaderNodeBsdfTransparent')
-                    node_Transparent.location = 200,300
-                    
-                    links = a.node_tree.links
-                    link = links.new(node_DiffuseBSDF.outputs[0], node_Mix.inputs[2])
-                    link = links.new(node_Transparent.outputs[0], node_Mix.inputs[1])
-                    link = links.new(node_Mix.outputs[0], node_output.inputs[0])
-                else:
-                    a.use_nodes = True
-                    a.node_tree.nodes.clear()
-                    node_output = a.node_tree.nodes.new(type='ShaderNodeOutputMaterial')
-                    node_output.location = 400,100
-                    
-                    node_DiffuseBSDF = a.node_tree.nodes.new(type = nodeType)
-                    node_DiffuseBSDF.location = 200,100
-                    node_DiffuseBSDF.name = 'Shader'
-                    
-                    node_Mix = a.node_tree.nodes.new(type='ShaderNodeMixShader')
-                    node_Mix.location = 400,300
-                    
-                    node_Mix.inputs[0].default_value = 1.0
-                    
-                    node_Transparent = a.node_tree.nodes.new(type='ShaderNodeBsdfTransparent')
-                    node_Transparent.location = 200,300
-                    
-                    links = a.node_tree.links
-                    link = links.new(node_DiffuseBSDF.outputs[0], node_Mix.inputs[2])
-                    link = links.new(node_Transparent.outputs[0], node_Mix.inputs[1])
-                    link = links.new(node_Mix.outputs[0], node_output.inputs[0])
-        else:
+
             for a in bpy.data.materials:
                 a.use_nodes = True
-                
-                try:
-                    nodes = a.node_tree.nodes
-                    links = a.node_tree.links
-                    try:
-                        node_DiffuseBSDF = nodes.get("Diffuse BSDF")
-                    except:
-                        node_DiffuseBSDF = a.node_tree.nodes.new(type = nodeType)
-                        node_DiffuseBSDF.location = 200,100
-                    node_DiffuseBSDF.name = 'Shader'
-                    
-                    try:
-                        node_Mix = nodes.get("Mix Shader")
-                    except:
-                        node_Mix = a.node_tree.nodes.new(type = nodeType)
-                        node_Mix.location = 400,300
-                    node_Mix.inputs[0].default_value = 1.0
-                    
-                    try:
-                        node_Transparent = nodes.get("Transparent BSDF")
-                    except:
-                        node_Transparent = a.node_tree.nodes.new(type = nodeType)
-                        node_Transparent.location = 200,300
-                        
-                    link = links.new(node_DiffuseBSDF.outputs[0], node_Mix.inputs[2])
-                    link = links.new(node_Transparent.outputs[0], node_Mix.inputs[1])
-                    link = links.new(node_Mix.outputs[0], node_output.inputs[0])
-                except:
-                    print('failed adding node links to preview sphere') 
+                a.node_tree.nodes.clear()
+                node_output = a.node_tree.nodes.new(type='ShaderNodeOutputMaterial')
+                node_output.location = 400,100
 
-        #build shaderList
-        shaderList = []
+                node_DiffuseBSDF = a.node_tree.nodes.new(type = node_type)
+                node_DiffuseBSDF.location = 200,100
+                node_DiffuseBSDF.name = 'Shader'
+
+                node_Mix = a.node_tree.nodes.new(type='ShaderNodeMixShader')
+                node_Mix.location = 400,300
+
+                node_Mix.inputs[0].default_value = 1.0
+
+                node_Transparent = a.node_tree.nodes.new(type='ShaderNodeBsdfTransparent')
+                node_Transparent.location = 200,300
+
+                links = a.node_tree.links
+                links.new(node_DiffuseBSDF.outputs[0], node_Mix.inputs[2])
+                links.new(node_Transparent.outputs[0], node_Mix.inputs[1])
+                links.new(node_Mix.outputs[0], node_output.inputs[0])
+        else:
+            print("Prcessing bpy.data.materials")
+            for m in bpy.data.materials:
+                m.use_nodes = True
+
+                try:
+                    nodes = m.node_tree.nodes
+                    links = m.node_tree.links
+
+                    nodes.clear()
+
+                    node_output = nodes.new(type='ShaderNodeOutputMaterial')
+                    node_output.location = (400,100)
+
+                    node_DiffuseBSDF = nodes.new(type=node_type)
+                    node_DiffuseBSDF.location = (200,100)
+
+                    node_Mix = nodes.new(type="ShaderNodeMixShader")
+                    node_Mix.location = (400,300)
+                    node_Mix.inputs["Fac"].default_value = 1.0
+
+                    node_Transparent = nodes.new(type="ShaderNodeBsdfTransparent")
+                    node_Transparent.location = (200,300)
+
+                    links.new(node_DiffuseBSDF.outputs["BSDF"], node_Mix.inputs[2])
+                    links.new(node_Transparent.outputs["BSDF"], node_Mix.inputs[1])
+                    links.new(node_Mix.outputs["Shader"], node_output.inputs["Surface"])
+                except Exception as e:
+                    print("..failed adding node links to preview sphere, error: {}"
+                          .format(str(e)))
+
+        #build shader_list
+        shader_list = []
         try:
-            dir = os.listdir(basePath + shaderPath)
-            for file_path in dir:
-                if file_path.lower().endswith('.shader'):
-                    shaderList.append(basePath + shaderPath + file_path)
-        except:
-            print ('could not open shader')
+            shader_files = os.listdir(os.path.join(base_path, shader_path))
+            shader_list = [os.path.join(base_path, shader_path, file_path)
+                           for file_path in shader_files
+                           if file_path.lower().endswith('.shader')]
+        except Exception as e:
+            print("Could not build shader list, error {}".format(str(e)))
 
         #get needed shaders
-        neededShaders = []
-        for ob in processingObjects:
+        needed_shaders = set()
+        for ob in processing_objects:
             bpy.ops.object.select_all(action='DESELECT')
             ob.select = True
+
             scene.objects.active = ob
             for m in ob.material_slots:
                 m.material.name = os.path.splitext(m.material.name)[0]
-                m.material.name = os.path.splitext(m.material.name)[0]
-                text = m.material.name
-                toAdd = True
-                for shader in neededShaders:
-                    if text == shader:
-                        toAdd = False
-                        break
-                if toAdd:
-                    neededShaders.append(m.material.name)
-                               
+                material_name = m.material.name
+                needed_shaders.add(m.material.name)
+
         #find shaders
-        shaderNames = []
+        shader_names = []
         diffuseTexture = []
         emissiveTexture = []
         is_emissive = []
         is_transparent = []
-        currentShader = ''
-        numberOfShaders = 0
-        numberOfSkyShaders = 0
-        bufferTexture = ''
-        bufferDiffuseTexture = ''
-        bufferEmissiveTexture = ''
+        current_shader = ''
+        buffer_texture = ''
+        buffer_diffuse_texture = ''
+        buffer_emissive_texture = ''
 
-        skyShaders = []
-        skyShaderTextures = []
+        sky_shaders = []
+        sky_shader_textures = []
 
-        suns = 0
-        sunColor = []
-        sunIntensity = []
-        sunRotation = []
-
-        for shaderFile in shaderList:
+        suns = []
+        for shader_file in shader_list:
             try:
-                foundShader = False
-                foundDiffuse = False
-                foundEmissive = False
-                diffuseStage = False
-                glowStage = False
-                transparentStage = False
-                isSky = False
-                isOpen = 0
-                with open(shaderFile) as lines:
+                found_shader = False
+                found_diffuse = False
+                found_emissive = False
+                diffuse_stage = False
+                glow_stage = False
+                transparent_stage = False
+                is_sky = False
+                is_open = 0
+                with open(shader_file) as lines:
                     for line in lines:
                         #skip empty lines or comments
-                        if ((line.strip(" \t\r\n").startswith('/')) and (line.strip("\t\r\n") != ' ')): 
+                        if line.strip(" \t\r\n").startswith('/') and (line.strip("\t\r\n") != ' '):
                             continue
+
                         #content
-                        if not(line.strip(" \t\r\n").startswith('{')) and not(line.strip(" \t\r\n").startswith('}')):
-                            if (isOpen == 0):
-                                for shader in neededShaders:
+                        if not line.strip(" \t\r\n").startswith('{') and not line.strip(" \t\r\n").startswith('}'):
+                            if is_open == 0:
+                                for shader in needed_shaders:
                                     if shader == line.strip(" \t\r\n"):
-                                        currentShader = line.strip(" \t\r\n")
-                                        foundShader = True
-                            if (isOpen == 1) and foundShader:     #special attributes like material or sky stuff
+                                        current_shader = line.strip(" \t\r\n")
+                                        found_shader = True
+                            elif is_open == 1 and found_shader:     #special attributes like material or sky stuff
                                 if line.lower().strip(" \t\r\n").startswith('skyparms'):
                                     try:
                                         try:
                                             marker, value = line.strip(" \t\r\n").split('\t', 1)
                                         except:
                                             marker, value = line.strip(" \t\r\n").split(' ', 1)
-                                        isSky = True
-                                        bufferDiffuseTexture = value.strip(" \t\r\n")
+                                        is_sky = True
+                                        buffer_diffuse_texture = value.strip(" \t\r\n")
                                     except:
                                         print ("could not split line: " + line)
-                                        
+
                                 if line.lower().strip(" \t\r\n").startswith('surfaceparm'):
                                     try:
                                         try:
@@ -895,227 +878,169 @@ class InterpretShaders(bpy.types.Operator):
                                         except:
                                             marker, value = line.strip(" \t\r\n").split(' ', 1)
                                         if value.strip(" \t\r\n") == "sky":
-                                            isSky = True
+                                            is_sky = True
                                         if value.strip(" \t\r\n") == "trans":
-                                            transparentStage = True
+                                            transparent_stage = True
                                     except:
                                         print ("could not split line: " + line)
-                                
-                                if line.lower().strip(" \t\r\n").startswith('sun') or line.strip(" \t\r\n").startswith('q3map_sun') or line.strip(" \t\r\n").startswith('q3map_sunext') :
+
+                                if (line.lower().strip(" \t\r\n").startswith('sun') or
+                                    line.strip(" \t\r\n").startswith('q3map_sun') or
+                                    line.strip(" \t\r\n").startswith('q3map_sunext')):
                                     try:
                                         try:
                                             marker, r, g, b, i, d, e, deviance, samples = line.strip(" \t\r\n").split('\t', 8)
                                         except:
                                             marker, r, g, b, i, d, e = line.strip(" \t\r\n").split(' ', 6)
-                                        sunColor.append(r)
-                                        sunColor.append(g)
-                                        sunColor.append(b)
-                                        sunIntensity.append(i)
-                                        sunRotation.append(d)
-                                        sunRotation.append(e)
-                                        suns += 1
+                                        suns.append(Sun(float(r), float(g), float(b), float(d), float(e), float(i)))
                                     except:
                                         print ("could not split line: " + line)
-                                        
-                            if (isOpen == 2) and foundShader:
-                                
+                            elif is_open == 2 and found_shader:
                                 if line.lower().strip(" \t\r\n") == 'glow':
-                                    glowStage = True
-                                    
-                                if line.lower().strip(" \t\r\n").startswith('surfacesprites'):
-                                    diffuseStage = False
-                                    glowStage = False
-                                    transparentStage = False
-                                    
-                                if line.lower().strip(" \t\r\n").startswith('alphafunc'):
+                                    glow_stage = True
+                                elif line.lower().strip(" \t\r\n").startswith('surfacesprites'):
+                                    diffuse_stage = False
+                                    glow_stage = False
+                                    transparent_stage = False
+                                elif line.lower().strip(" \t\r\n").startswith('alphafunc'):
                                     marker, value = line.strip(" \t\r\n").split(' ', 1)
                                     if value.strip(" \t\r\n") == "GE192":
-                                        transparentStage = True
+                                        transparent_stage = True
                                     if value.strip(" \t\r\n") == "GE128":
-                                        transparentStage = True
-                                    
-                                if line.lower().strip(" \t\r\n").startswith('blendfunc'):
+                                        transparent_stage = True
+                                elif line.lower().strip(" \t\r\n").startswith('blendfunc'):
                                     marker, value = line.strip(" \t\r\n").split(' ', 1)
                                     if value.strip(" \t\r\n") == "GL_ONE GL_ONE":
-                                        glowStage = True
-                                        
-                                if line.lower().strip(" \t\r\n").startswith('tcgen'):
+                                        glow_stage = True
+                                elif line.lower().strip(" \t\r\n").startswith('tcgen'):
                                     marker, value = line.strip(" \t\r\n").split(' ', 1)
                                     if value.strip(" \t\r\n") == "environment":
-                                        glowStage = False
-                                        diffuseStage = False
-                                
-                                if line.lower().strip(" \t\r\n").startswith('alphagen'):
+                                        glow_stage = False
+                                        diffuse_stage = False
+                                elif line.lower().strip(" \t\r\n").startswith('alphagen'):
                                     marker, value = line.strip(" \t\r\n").split(' ', 1)
                                     if value.strip(" \t\r\n") == "lightingSpecular":
-                                        glowStage = False
-                                        diffuseStage = False
-                                        
-                                if line.lower().strip(" \t\r\n").startswith('clampmap'):
+                                        glow_stage = False
+                                        diffuse_stage = False
+                                elif line.lower().strip(" \t\r\n").startswith('clampmap'):
                                     marker, value = line.strip(" \t\r\n").split(' ', 1)
                                     if (value.strip(" \t\r\n") != '$lightmap'):
-                                        bufferTexture = value
-                                        diffuseStage = True
-                                        
-                                if line.lower().strip(" \t\r\n").startswith('map'):
+                                        buffer_texture = value
+                                        diffuse_stage = True
+                                elif line.lower().strip(" \t\r\n").startswith('map'):
                                     marker, value = line.strip(" \t\r\n").split(' ', 1)
                                     if (value.strip(" \t\r\n") != '$lightmap'):
-                                        bufferTexture = value
-                                        diffuseStage = True
-                                        
+                                        buffer_texture = value
+                                        diffuse_stage = True
                         #marker open
-                        if line.strip(" \t\r\n").startswith('{'):
-                            isOpen = isOpen + 1.
-                            
+                        elif line.strip(" \t\r\n").startswith('{'):
+                            is_open = is_open + 1
                         #marker close
-                        if line.strip(" \t\r\n").startswith('}'):
-                            
+                        elif line.strip(" \t\r\n").startswith('}'):
                             #close stage
-                            if (isOpen == 2):
-                                if foundShader and (diffuseStage == True):
-                                    if glowStage:
-                                        bufferEmissiveTexture = bufferTexture
-                                        foundEmissive = True
-                                        glowStage = False
+                            if is_open == 2:
+                                if found_shader and diffuse_stage:
+                                    if glow_stage:
+                                        buffer_emissive_texture = buffer_texture
+                                        found_emissive = True
+                                        glow_stage = False
                                     else:
-                                        bufferDiffuseTexture = bufferTexture
-                                        
+                                        buffer_diffuse_texture = buffer_texture
                             #close material
-                            if (isOpen == 1):
-                                if foundShader and not isSky:
-                                    diffuseTexture.append(bufferDiffuseTexture)
-                                    if foundEmissive:
-                                        emissiveTexture.append(bufferEmissiveTexture)
+                            elif is_open == 1 and found_shader:
+                                if is_sky:
+                                    sky_shaders.append(current_shader)
+                                    sky_shader_textures.append(buffer_diffuse_texture.strip(' \t\r\n').split(' ',1)[0])
+
+                                    is_sky = False
+                                    found_shader = False
+                                    found_emissive = False
+                                    buffer_emissive_texture = 'none'
+                                    buffer_diffuse_texture = 'none'
+                                    buffer_texture = 'none'
+                                    diffuse_stage = False
+                                    glow_stage = False
+                                else:
+                                    diffuseTexture.append(buffer_diffuse_texture)
+                                    if found_emissive:
+                                        emissiveTexture.append(buffer_emissive_texture)
                                         is_emissive.append(True)
                                     else:
                                         emissiveTexture.append('none')
                                         is_emissive.append(False)
-                                    is_transparent.append(bool(transparentStage))
-                                    numberOfShaders += 1
-                                    shaderNames.append(currentShader)
-                                    
-                                    isSky = False
-                                    foundShader = False
-                                    foundEmissive = False
-                                    bufferEmissiveTexture = 'none'
-                                    bufferDiffuseTexture = 'none'
-                                    bufferTexture = 'none'
-                                    diffuseStage = False
-                                    glowStage = False
-                                    transparentStage = False
-                                    
-                                if foundShader and isSky:
-                                    skyShaders.append(currentShader)
-                                    skyShaderTextures.append(bufferDiffuseTexture.strip(' \t\r\n').split(' ',1)[0])
-                                    numberOfSkyShaders += 1
-                                    isSky = False
-                                    foundShader = False
-                                    foundEmissive = False
-                                    bufferEmissiveTexture = 'none'
-                                    bufferDiffuseTexture = 'none'
-                                    bufferTexture = 'none'
-                                    diffuseStage = False
-                                    glowStage = False
-                                    
-                            isOpen -= 1                      
+                                    is_transparent.append(bool(transparent_stage))
+                                    shader_names.append(current_shader)
+
+                                    is_sky = False
+                                    found_shader = False
+                                    found_emissive = False
+                                    buffer_emissive_texture = 'none'
+                                    buffer_diffuse_texture = 'none'
+                                    buffer_texture = 'none'
+                                    diffuse_stage = False
+                                    glow_stage = False
+                                    transparent_stage = False
+
+                            is_open -= 1
             except:
-                print (('error in shaderfile ') + shaderFile)
-                
+                print (('error in shaderfile ') + shader_file)
+
         #sky setup (SomaZ)
-        if (not onlyPreviewCube):
-            i = 0
+        if not only_preview_cube:
             try:
-                for sunI in sunIntensity:
+                for (sun_index, sun) in suns:
                     try:
                         bpy.ops.object.lamp_add(type='SUN', radius=0.1)
-                        sun = scene.objects['Sun']
-                        sun.name = 'Sun' + str(i)
-                        sun.rotation_euler = (0.0,radians(float(90.0 - float(sunRotation[i*2 + 1]))),radians(float (sunRotation[i*2])))
-                        sun.data.node_tree.nodes["Emission"].inputs[0].default_value = (float(sunColor[i*3]),float(sunColor[i*3 + 1]),float(sunColor[i*3 + 2]),1.0)
-                        sun.data.node_tree.nodes["Emission"].inputs[1].default_value = float(sunI) / 10.0
+                        sun_object = scene.objects['Sun']
+                        sun_object.name = 'Sun' + str(sun_index)
+                        sun_object.rotation_euler = (0.0, radians(90.0 - sun.yaw), sun.pitch)
+                        sun_object.data.node_tree.nodes["Emission"].inputs[0].default_value = (sun.r, sun.g, sun.b, 1.0)
+                        sun_object.data.node_tree.nodes["Emission"].inputs[1].default_value = sun.intensity / 10.0
                     except:
                         print ('could not parse a sun')
-                    i += 1
 
                 bpy.ops.mesh.primitive_cube_add(location=(0,0,0))
                 for ob in scene.objects:
-                    
                     ob.select = False
                     if ob.type == 'MESH' and ob.name.startswith("Cube"):
                         ob.name = "Sky"
                         ob.select = True
-                        
-                        isSky = True
-                        mesh = ob.data
-                        
-                        if skyNumber >= numberOfSkyShaders:
-                            print ('selected Sky Number is invalid. It gets replaced by 0')
-                            skyNumber = 0
-                        
-                        texture = skyShaderTextures[skyNumber]
-                        
-                        try:
-                            mesh.materials.append(bpy.data.materials[texture + "_up"])
-                        except:
-                            mat = bpy.data.materials.new(name= texture + "_up")
-                            mesh.materials.append(mat)
-                            mat.use_nodes = True   
-                        
-                        try:
-                            mesh.materials.append(bpy.data.materials[texture + "_dn"])
-                        except:
-                            mat = bpy.data.materials.new(name= texture + "_dn")
-                            mesh.materials.append(mat)  
-                            mat.use_nodes = True
-                        
-                        try:
-                            mesh.materials.append(bpy.data.materials[texture + "_ft"])
-                        except:
-                            mat = bpy.data.materials.new(name= texture + "_ft")
-                            mesh.materials.append(mat)  
-                            mat.use_nodes = True
-                        
-                        try:
-                            mesh.materials.append(bpy.data.materials[texture + "_bk"])
-                        except:
-                            mat = bpy.data.materials.new(name= texture + "_bk")
-                            mesh.materials.append(mat)  
-                            mat.use_nodes = True
-                        
-                        try:
-                            mesh.materials.append(bpy.data.materials[texture + "_lf"])
-                        except:
-                            mat = bpy.data.materials.new(name= texture + "_lf")
-                            mesh.materials.append(mat) 
-                            mat.use_nodes = True
-                        
-                        try:
-                            mesh.materials.append(bpy.data.materials[texture + "_rt"])
-                        except:
-                            mat = bpy.data.materials.new(name= texture + "_rt")
-                            mesh.materials.append(mat)
-                            mat.use_nodes = True
-                                
-                        face_list = [face for face in mesh.polygons]
 
-                        for face in face_list:
+                        is_sky = True
+                        mesh = ob.data
+
+                        if sky_number >= len(sky_shader_textures):
+                            print ('selected Sky Number is invalid. It gets replaced by 0')
+                            sky_number = 0
+
+                        texture = sky_shader_textures[sky_number]
+
+                        for side in ["up", "dn", "ft", "bk", "lf", "rt"]:
+                            material_name = "{}_{}".format(texture, side)
+                            try:
+                                mesh.materials.append(bpy.data.materials[material_name])
+                            except:
+                                mat = bpy.data.materials.new(name=material_name)
+                                mesh.materials.append(mat)
+                                mat.use_nodes = True
+
+                        for face in mesh.polygons:
                             face.select = True
                             face.flip()
-                            
+
                         bpy.ops.object.mode_set(mode='EDIT')
                         bpy.context.tool_settings.mesh_select_mode = [False, False, True]
                         bpy.ops.uv.reset()
 
                         bpy.ops.object.mode_set(mode='OBJECT')
                         bpy.ops.object.shade_smooth()
-                        mesh.polygons[0].material_index = 4
-                        mesh.polygons[1].material_index = 3
-                        mesh.polygons[2].material_index = 5
-                        mesh.polygons[3].material_index = 2
-                        mesh.polygons[4].material_index = 1
-                        mesh.polygons[5].material_index = 0
+
+                        sky_side_mapping = [4, 3, 5, 2, 1, 0]
+                        for i in range(6):
+                            mesh.polygons[i].material_index = sky_side_mapping[i]
+
                         bpy.context.scene.update()
-                        
+
                         ob.scale = (500.0, 500.0, 500.0)
                         ob.modifiers.new("subd", type='SUBSURF')
                         ob.modifiers['subd'].levels = 0
@@ -1123,222 +1048,217 @@ class InterpretShaders(bpy.types.Operator):
                         ob.cycles_visibility.shadow = False
             except:
                 print ('could not setup the sky')
-                
+
         #textures setup
-        useShader = False
-        index = 0
+        use_shader = False
         textures = []
-        texturePath = ' '
-        emissivePath = ' '
+        texture_path = ' '
+        emissive_path = ' '
         for m in bpy.data.materials:
             try:
-                texturePath = os.path.splitext(m.name)[0]
-                texturePath = os.path.splitext(texturePath)[0]
-                isSky = False
-                isSkyTexture = False
-                
-                for shader in skyShaders:
-                    if shader == m.name:
-                        isSky = True
+                texture_path = os.path.splitext(m.name)[0]
+                texture_path = os.path.splitext(texture_path)[0]
+                is_sky = False
+                is_sky_texture = False
 
-                for shader in skyShaderTextures:
-                    if texturePath.lower().startswith(shader.lower()):
-                        isSkyTexture = True
-                    
-                useShader = False
-                if isSky:
+                for shader in sky_shaders:
+                    if shader == m.name:
+                        is_sky = True
+
+                for shader in sky_shader_textures:
+                    if texture_path.lower().startswith(shader.lower()):
+                        is_sky_texture = True
+
+                use_shader = False
+                if is_sky:
                     m.use_nodes = True
                     nodes = m.node_tree.nodes
+
                     material_output = nodes.get("Material Output")
                     node_transparentShader = nodes.new(type='ShaderNodeBsdfTransparent')
                     node_transparentShader.location = 0,400
-                    links = m.node_tree.links
-                    link = links.new(node_transparentShader.outputs[0], material_output.inputs[0])
+                    m.node_tree.links.new(
+                        node_transparentShader.outputs["BSDF"],
+                        material_output.inputs["Surface"])
                 else:
                     #check if there is a shader for the material
-                    for i in range(0,numberOfShaders):
-                        if shaderNames[i] == texturePath:
-                            useShader = True
-                            texturePath = '.'.join((diffuseTexture[i]).split('.', 2)[:1])
-                            emissivePath = '.'.join((emissiveTexture[i]).split('.', 2)[:1])
-                            hasDiffuse = True
-                            hasGlow = bool(is_emissive[i])
-                            hasTransparency = bool(is_transparent[i])
-                            index += 1
-                            
-                    if not(useShader):
-                        hasDiffuse = True
-                        hasTransparency = False
-                        hasGlow = False
-                    
-                    if isSkyTexture:
-                        hasDiffuse = False
-                        hasGlow = True
-                        emissivePath = texturePath
-                    
-                    try:
-                        img = bpy.data.images.load(basePath + texturePath + '.jpg')
-                    except:
-                        try:
-                            img = bpy.data.images.load(basePath + texturePath + '.tga')
-                        except:
+                    for i in range(len(shader_names)):
+                        if shader_names[i] == texture_path:
+                            use_shader = True
+                            texture_path = '.'.join((diffuseTexture[i]).split('.', 2)[:1])
+                            emissive_path = '.'.join((emissiveTexture[i]).split('.', 2)[:1])
+                            has_diffuse = True
+                            has_glow = bool(is_emissive[i])
+                            has_transparency = bool(is_transparent[i])
+
+                    if not use_shader:
+                        has_diffuse = True
+                        has_transparency = False
+                        has_glow = False
+
+                    if is_sky_texture:
+                        has_diffuse = False
+                        has_glow = True
+                        emissive_path = texture_path
+
+                    def load_image(texture_path):
+                        for extension in [".jpg", ".tga", ".png"]:
                             try:
-                                img = bpy.data.images.load(basePath + texturePath + '.png')
+                                return bpy.data.images.load(
+                                    os.path.join(base_path, texture_path + extension))
                             except:
-                                hasDiffuse = False
-                                print ("Can't load image %s in shader " % texturePath, m.name)
-                    if gl2:        
-                        #RMO textures
-                        if hasDiffuse:        
-                            try:
-                                rmo_img = bpy.data.images.load(basePath + texturePath + '_rmo.jpg')
-                            except:
-                                try:
-                                    rmo_img = bpy.data.images.load(basePath + texturePath + '_rmo.tga')
-                                except:
-                                    try:
-                                        rmo_img = bpy.data.images.load(basePath + texturePath + '_rmo.png')
-                                    except:
-                                        print ("Can't load rmo image %s in shader " % texturePath, m.name)
-                        
-                        #nh textures
-                        if hasDiffuse:        
-                            try:
-                                nh_img = bpy.data.images.load(basePath + texturePath + '_n.jpg')
-                            except:
-                                try:
-                                    nh_img = bpy.data.images.load(basePath + texturePath + '_n.tga')
-                                except:
-                                    try:
-                                        nh_img = bpy.data.images.load(basePath + texturePath + '_n.png')
-                                    except:
-                                        print ("Can't load rmo image %s in shader " % texturePath, m.name)
-                                
-                                    
+                                continue
+
+                        return None
+
+                    img = load_image(texture_path)
+                    if img is None:
+                        has_diffuse = False
+                        print ("Can't load image '{}' in shader '{}'".format(texture_path, m.name))
+
+                    if gl2 and has_diffuse:
+                        rmo_img = load_image("{}_rmo".format(texture_path))
+                        if rmo_img is None:
+                            print ("Can't load rmo image '{}' in shader '{}'".format(texture_path, m.name))
+
+                        nh_img = load_image("{}_n".format(texture_path))
+                        if nh_img is None:
+                            print ("Can't load NH image '{}' in shader '{}'".format(texture_path, m.name))
+
                     #glow textures
-                    if hasGlow:
-                        try:
-                            img_glow = bpy.data.images.load(basePath + emissivePath + '.jpg')
-                        except:
-                            try:
-                                img_glow = bpy.data.images.load(basePath + emissivePath + '.tga')
-                            except:
-                                try:
-                                    img_glow = bpy.data.images.load(basePath + emissivePath + '.png')
-                                except:
-                                    hasGlow = False
-                                    print ("image %s not found (emissive texture)" % emissivePath)
-                                    
-                    index = 0
-                    
+                    if has_glow:
+                        img_glow = load_image(emissive_path)
+                        if img_glow is None:
+                            has_glow = False
+                            print ("image %s not found (emissive texture)" % emissive_path)
+
                     #Node setup
                     m.use_nodes = True
                     nodes = m.node_tree.nodes
                     material_output = nodes.get("Material Output")
-                    
+
                     #is a valid material
-                    if hasDiffuse or hasGlow:              
+                    if has_diffuse or has_glow:
                         node_LightmapUV = nodes.new(type='ShaderNodeUVMap')
                         node_LightmapUV.uv_map = "LightmapUV"
                         node_LightmapUV.location = -500, -200
-                        
+
                         node_DiffuseUV = nodes.new(type='ShaderNodeUVMap')
                         node_DiffuseUV.uv_map = "UVMap"
                         node_DiffuseUV.location = -250, -200
-                        
+
                         node_lmTexture = nodes.new(type='ShaderNodeTexImage')
                         node_lmTexture.location = -500, 300
                         node_lmTexture.name = 'Lightmap'
                         node_lmTexture.label = 'Lightmap'
-                
+
+                        if gl2:
+                            diffuse_node = nodes.get("Principled BSDF")
+                        else:
+                            diffuse_node = nodes.get("Diffuse BSDF")
+
+                        mix_node = nodes.get("Mix Shader")
+
                         links = m.node_tree.links
-                        link = links.new(node_LightmapUV.outputs[0], node_lmTexture.inputs[0])
-                        
-                        if hasDiffuse:
+                        links.new(node_LightmapUV.outputs["UV"], node_lmTexture.inputs["Vector"])
+
+                        if has_diffuse:
                             node_texture = nodes.new(type='ShaderNodeTexImage')
                             node_texture.image = img
                             node_texture.location = 0,100
-                            
-                            link = links.new(node_DiffuseUV.outputs[0], node_texture.inputs[0])
-                            link = links.new(node_texture.outputs[0], nodes.get("Shader").inputs[0])
-                            
+
+                            links.new(node_DiffuseUV.outputs["UV"], node_texture.inputs["Vector"])
+                            links.new(node_texture.outputs["Color"], diffuse_node.inputs["Color"])
+
                             if gl2:
                                 try:
                                     node_seperate = nodes.new(type='ShaderNodeSeparateRGB')
                                     node_seperate.location = 0, -200
+
                                     node_rmotexture = nodes.new(type='ShaderNodeTexImage')
                                     node_rmotexture.image = rmo_img
                                     node_rmotexture.location = 0,-400
                                     node_rmotexture.color_space = 'NONE'
+
                                     node_nhtexture = nodes.new(type='ShaderNodeTexImage')
                                     node_nhtexture.image = nh_img
                                     node_nhtexture.location = 0,-700
                                     node_nhtexture.color_space = 'NONE'
+
                                     node_normalMap = nodes.new(type='ShaderNodeNormalMap')
                                     node_normalMap.location = 200,-700
-                                    link = links.new(node_rmotexture.outputs[0], node_seperate.inputs[0])
-                                    link = links.new(node_DiffuseUV.outputs[0], node_rmotexture.inputs[0])
-                                    link = links.new(node_seperate.outputs[0], nodes.get("Shader").inputs['Roughness'])
-                                    link = links.new(node_seperate.outputs[1], nodes.get("Shader").inputs['Metallic'])
-                                    link = links.new(node_nhtexture.outputs[0], node_normalMap.inputs[1])
-                                    link = links.new(node_nhtexture.outputs[1], material_output.inputs[2])
-                                    link = links.new(node_DiffuseUV.outputs[0], node_nhtexture.inputs[0])
-                                    link = links.new(node_normalMap.outputs[0], nodes.get("Shader").inputs['Normal'])
+
+                                    links.new(node_rmotexture.outputs[0], node_seperate.inputs[0])
+                                    links.new(node_DiffuseUV.outputs[0], node_rmotexture.inputs[0])
+                                    links.new(node_seperate.outputs[0], diffuse_node.inputs['Roughness'])
+                                    links.new(node_seperate.outputs[1], diffuse_node.inputs['Metallic'])
+                                    links.new(node_nhtexture.outputs[0], node_normalMap.inputs[1])
+                                    links.new(node_nhtexture.outputs[1], material_output.inputs["Displacement"])
+                                    links.new(node_DiffuseUV.outputs[0], node_nhtexture.inputs[0])
+                                    links.new(node_normalMap.outputs[0], diffuse_node.inputs['Normal'])
                                 except:
                                     print('not gl2 compatible')
-                        
-                        if hasGlow:
+
+                        if has_glow:
                             node_addShader = nodes.new(type='ShaderNodeAddShader')
                             node_addShader.location = 0,400
+
                             node_glow_texture = nodes.new(type='ShaderNodeTexImage')
                             node_glow_texture.image = img_glow
                             node_glow_texture.location = -250,100
+
                             node_emissiveShader = nodes.new(type='ShaderNodeEmission')
                             node_emissiveShader.location = -250,300
-                            
-                            link = links.new(node_glow_texture.outputs[0], node_emissiveShader.inputs[0])
-                            if isSkyTexture:
-                                node_emissiveShader.inputs[1].default_value = defaultSkyEmissive
-                                link = links.new(node_emissiveShader.outputs[0], material_output.inputs[0])
+
+                            links.new(node_glow_texture.outputs[0], node_emissiveShader.inputs[0])
+                            if is_sky_texture:
+                                node_emissiveShader.inputs[1].default_value = default_sky_emissive
+                                links.new(node_emissiveShader.outputs[0], material_output.inputs["Surface"])
                             else:
-                                nodes.get("Shader").inputs['Roughness'].default_value = defaultRoughness
-                                link = links.new(nodes.get("Shader").outputs[0], node_addShader.inputs[0])
-                                link = links.new(node_emissiveShader.outputs[0], node_addShader.inputs[1])
-                                node_emissiveShader.inputs[1].default_value = defaultEmissive
-                                link = links.new(node_DiffuseUV.outputs[0], node_glow_texture.inputs[0])
-                                link = links.new(node_addShader.outputs[0], material_output.inputs[0])
+                                diffuse_node.inputs['Roughness'].default_value = default_roughness
+                                node_emissiveShader.inputs[1].default_value = default_emissive
+
+                                links.new(diffuse_node.outputs["BSDF"], node_addShader.inputs[0])
+                                links.new(node_emissiveShader.outputs[0], node_addShader.inputs[1])
+                                links.new(node_DiffuseUV.outputs["UV"], node_glow_texture.inputs["Vector"])
+                                links.new(node_addShader.outputs["Shader"], material_output.inputs["Shader"])
                         else:
-                            link = links.new(node_texture.outputs[0], nodes.get("Shader").inputs[0])
-                            nodes.get("Shader").inputs['Roughness'].default_value = defaultRoughness
-                            link = links.new(node_DiffuseUV.outputs[0], node_texture.inputs[0])
-                            
-                        if hasDiffuse:
-                            link = links.new(node_texture.outputs[1], nodes.get("Mix Shader").inputs[0])
-                        if hasTransparency and (not hasDiffuse) and hasGlow:
-                            link = links.new(node_glow_texture.outputs[0], nodes.get("Mix Shader").inputs[0])
-                            link = links.new(node_addShader.outputs[0], nodes.get("Mix Shader").inputs[2])
-                            link = links.new(nodes.get("Mix Shader").outputs[0], material_output.inputs[0])
-            except:
-                print('could not build cycles shader for: ' + m.name)
+                            links.new(node_texture.outputs["Color"], diffuse_node.inputs["Color"])
+                            if gl2:
+                                diffuse_node.inputs['Roughness'].default_value = default_roughness
+
+                            links.new(node_DiffuseUV.outputs["UV"], node_texture.inputs["Vector"])
+
+                        if has_diffuse:
+                            links.new(node_texture.outputs["Alpha"], mix_node.inputs["Fac"])
+                        elif has_transparency and has_glow:
+                            links.new(node_glow_texture.outputs[0], mix_node.inputs["Fac"])
+                            links.new(node_addShader.outputs["Shader"], mix_node.inputs[2])
+                            links.new(mix_node.outputs["Shader"], material_output.inputs[0])
+            except Exception as e:
+                print("Could not build cycles shader for '{}', error {}"
+                      .format(m.name, str(e)))
+
         return{'FINISHED'}
-    
+
+
 class PrepareBaking(bpy.types.Operator):
+
     bl_idname = "q3map.prepare_baking"
     bl_label = "Prepare Lightmap baking"
-    
+
     def execute(self, context):
-        
         scene = bpy.context.scene
-        q3mapImportTool = scene.q3mapImportTool
-        deluxeMapping = q3mapImportTool.deluxeMapped #skip every second lightmap, because of deluxemapping, default should be False
-        lmSize = q3mapImportTool.lmSize
-        gl2 = q3mapImportTool.gl2
-        
+        q3_map_import_tool = scene.q3_map_import_tool
+        deluxeMapping = q3_map_import_tool.deluxeMapped #skip every second lightmap, because of deluxemapping, default should be False
+        lmSize = q3_map_import_tool.lmSize
+        gl2 = q3_map_import_tool.gl2
+
         addon_name = __name__.split('.')[0]
         self.prefs = context.user_preferences.addons[addon_name].preferences
-        
-        basePath = self.prefs.base_path
-        
+
+        base_path = self.prefs.base_path
+
         failed = False
 
         lms = 0
@@ -1349,7 +1269,7 @@ class PrepareBaking(bpy.types.Operator):
 
         for i in range(0,lms-1):
             bpy.ops.object.select_all(action='DESELECT')
-            
+
             if deluxeMapping:
                 name = 'Lightmap_' + str(i*2).zfill(4)
             else:
@@ -1357,29 +1277,29 @@ class PrepareBaking(bpy.types.Operator):
             try:
                 obs = scene.objects[name]
                 obs.select = True
-                
+
                 scene.objects.active = scene.objects[name]
                 obs.data.uv_textures["LightmapUV"].active = True
                 obs.data.uv_textures["LightmapUV"].active_render = True
-                
+
                 try:
                     bpy.data.images[name].scale(lmSize,lmSize)
                     image = bpy.data.images[name]
-                    if (gl2):
+                    if gl2:
                         image.use_generated_float = True
                     image.use_alpha = False
-                    image.filepath = basePath + "maps\\" + q3mapImportTool.map_name + "\\" + name + ".tga"
+                    image.filepath = base_path + "maps\\" + q3_map_import_tool.map_name + "\\" + name + ".tga"
                     image.file_format = 'TARGA'
                     #image.colorspace_settings.name = 'Linear'
                 except:
                     image = bpy.data.images.new(name, lmSize, lmSize)
-                    if (gl2):
+                    if gl2:
                         image.use_generated_float = True
                     image.use_alpha = False
-                    image.filepath = basePath + "maps\\" + q3mapImportTool.map_name + "\\" + name + ".tga"
+                    image.filepath = base_path + "maps\\" + q3_map_import_tool.map_name + "\\" + name + ".tga"
                     image.file_format = 'TARGA'
                     #image.colorspace_settings.name = 'Linear'
-                try:  
+                try:
                     for ms in obs.material_slots:
                         newname = os.path.splitext(ms.material.name)[0]
                         newname = os.path.splitext(newname)[0] + '.' + name
@@ -1391,15 +1311,17 @@ class PrepareBaking(bpy.types.Operator):
             except:
                 failed = True
                 print ('error in ' + name)
-        
-        if (not failed):
+
+        if not failed:
             found = False
+
             #select lightmapped objects
-            for i in range(0,lms-1):
+            for i in range(lms-1):
                 if deluxeMapping:
                     name = 'Lightmap_' + str(i*2).zfill(4)
                 else:
                     name = 'Lightmap_' + str(i).zfill(4)
+
                 try:
                     scene.objects[name].select = True
                     obs = scene.objects[name]
@@ -1407,59 +1329,67 @@ class PrepareBaking(bpy.types.Operator):
                     found = True
                 except:
                     found = False
-            #join selected objects 
+
+            #join selected objects
             if found == True:
                 obs.name = 'Baking Object'
                 bpy.ops.object.join()
                 obs.data.use_auto_smooth = False
-        
+
         return{'FINISHED'}
-    
+
+
 class SaveBakedLMs(bpy.types.Operator):
+
     bl_idname = "q3map.save_baked_lms"
     bl_label = "Save baked Lightmaps"
-    
+
     def execute(self, context):
-        
         scene = bpy.context.scene
-        q3mapImportTool = scene.q3mapImportTool
-        deluxeMapping = q3mapImportTool.deluxeMapped #skip every second lightmap, because of deluxemapping, default should be False
+        q3_map_import_tool = scene.q3_map_import_tool
+
+        #skip every second lightmap, because of deluxemapping, default should be False
+        deluxeMapping = q3_map_import_tool.deluxeMapped
         for img in bpy.data.images:
-            if (img.name.startswith("Lightmap_")):
+            if img.name.startswith("Lightmap_"):
                 img.save()
-        
+
         return{'FINISHED'}
-    
+
+
 class AddSelectedMaterial(bpy.types.Operator):
+
     bl_idname = "q3map.add_material"
     bl_label = "Add material to current selection"
-    
+
     def execute(self, context):
         scene = context.scene
-        q3mapImportTool = scene.q3mapImportTool
-        
-        currentShader = scene.q3mapImportTool.shader
-        
+        q3_map_import_tool = scene.q3_map_import_tool
+
+        current_shader = scene.q3_map_import_tool.shader
+
         for obj in bpy.context.selected_objects:
             mesh = obj.data
             try:
                 mesh.materials[currentShader]
             except:
                 mesh.materials.append(bpy.data.materials[currentShader])
-        
+
         return{'FINISHED'}
-    
+
+
 # ------------------------------------------------------------------------
 # register and unregister
 # ------------------------------------------------------------------------
-
 def register():
     bpy.utils.register_module(__name__)
-    bpy.types.Scene.q3mapImportTool = PointerProperty(type=ImporterSettings)
+    bpy.types.Scene.q3_map_import_tool = PointerProperty(type=ImporterSettings)
+
 
 def unregister():
     bpy.utils.unregister_module(__name__)
-    del bpy.types.Scene.q3mapImportTool
+    del bpy.types.Scene.q3_map_import_tool
+
 
 if __name__ == "__main__":
     register()
