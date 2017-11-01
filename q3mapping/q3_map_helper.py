@@ -1371,9 +1371,9 @@ class AddSelectedMaterial(bpy.types.Operator):
         for obj in bpy.context.selected_objects:
             mesh = obj.data
             try:
-                mesh.materials[currentShader]
+                mesh.materials[current_shader]
             except:
-                mesh.materials.append(bpy.data.materials[currentShader])
+                mesh.materials.append(bpy.data.materials[current_shader])
 
         return{'FINISHED'}
 

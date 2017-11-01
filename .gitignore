@@ -1,0 +1,12 @@
+
+*.pdb
+*.lib
+*.ipdb
+*.iobj
+*.exp
+*.obj
+*.tlog
+*.pch
+*.log
+*.ipch
+q3mapping/q3MappingLib/.vs/q3MappingLib/v14/.suo
