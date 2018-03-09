@@ -1152,10 +1152,7 @@ class InterpretShaders(bpy.types.Operator):
                         node_lmTexture.name = 'Lightmap'
                         node_lmTexture.label = 'Lightmap'
 
-                        if gl2:
-                            diffuse_node = nodes.get("Principled BSDF")
-                        else:
-                            diffuse_node = nodes.get("Diffuse BSDF")
+                        diffuse_node = nodes.get("Shader")
 
                         mix_node = nodes.get("Mix Shader")
 
@@ -1223,7 +1220,6 @@ class InterpretShaders(bpy.types.Operator):
                                 links.new(node_DiffuseUV.outputs["UV"], node_glow_texture.inputs["Vector"])
                                 links.new(node_addShader.outputs["Shader"], material_output.inputs["Shader"])
                         else:
-                            links.new(node_texture.outputs["Color"], diffuse_node.inputs["Color"])
                             if gl2:
                                 diffuse_node.inputs['Roughness'].default_value = default_roughness
 
