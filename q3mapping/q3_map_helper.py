@@ -523,15 +523,23 @@ class ImportMap(bpy.types.Operator):
         misc_models_scales = []
         misc_models_angles = []
         num_misc_models = 0
+        
+        lights_origins = []
+        lights_light = []
+        lights_colors = []
+        num_lights = 0
 
         #get misc_model_static's informations
         try:
             blockOpen = 0
             is_misc_model_static = False
+            is_light = False
             has_origin = False
             model = ''
             angle = 0.0
             origin = '0 0 0'
+            color = '1.0 1.0 1.0'
+            light = '0'
             modelscale = 1.0
             with open(file + '_converted.map') as lines:
                 for line in lines:
@@ -546,11 +554,19 @@ class ImportMap(bpy.types.Operator):
                                 misc_models_scales.append(modelscale)
                                 misc_models_angles.append(angle)
                                 num_misc_models += 1
+                            if is_light and has_origin:
+                                lights_origins.append(origin)
+                                lights_light.append(light)
+                                lights_colors.append(color)
+                                num_lights += 1
                             model = ''
                             origin = '0 0 0'
+                            color = '1.0 1.0 1.0'
+                            light = '0'
                             modelscale = 1.0
                             angle = 0.0
                             is_misc_model_static = False
+                            is_light = False
                             has_origin = False
                             blockOpen -= 1
                             continue
@@ -558,8 +574,14 @@ class ImportMap(bpy.types.Operator):
                             first, rest = line.strip("\t\r\n").split(' ', 1)
                             if (first == '"classname"') and (rest == '"misc_model_static"'):
                                 is_misc_model_static = True
+                            if (first == '"classname"') and (rest == '"light"'):
+                                is_light = True
                             if (first == '"model"'):
                                 model = rest.strip('"')
+                            if (first == '"light"'):
+                                light = rest.strip('"')
+                            if (first == '"_color"'):
+                                color = rest.strip('"')
                             if (first == '"angle"'):
                                 angle = rest.strip('"')
                             if (first == '"origin"'):
@@ -572,24 +594,20 @@ class ImportMap(bpy.types.Operator):
         except:
             print ('could not parse all models from ' + file + '_converted.map')
 
-        #add box placeholders for misc_model_statics or entitys, could be useful for other entities (SomaZ)
-        #for mms in range(0, num_misc_models):
-            #x,y,z = misc_models_origins[mms].strip("\t\r\n").split(' ', 2)
-
-            #add cube as representative for the misc_model_static entity
-            #bpy.ops.mesh.primitive_cube_add(location=(float(x)/100,float(y)/100,float(z)/100))
-
-            #make cube smaller in the viewport
-            #scale = (.2,.2,.1)
-            #bpy.ops.transform.resize( value=scale ) #resizes the cube
-            #bpy.ops.object.transform_apply( scale=True ) #don't forget to apply!!
-
-            #ob = bpy.context.object #stores the active object (the cube created above)
-            #ob.name= misc_models[mms]; ob.data.name = ob.name #just naming
-
-            #resizes the cube, don't apply scale! We need it for the correct scale of all the entities!
-            #scale = (misc_models_scales[mms],misc_models_scales[mms],misc_models_scales[mms])
-            #bpy.ops.transform.resize( value=scale )
+        #add light entities (SomaZ)
+        for misc_light in range(0, num_lights):
+            scene.render.engine = 'CYCLES'
+            x,y,z = lights_origins[misc_light].strip("\t\r\n").split(' ', 2)
+            r,g,b = lights_colors[misc_light].strip("\t\r\n").split(' ', 2)
+            light_value = float(lights_light[misc_light])
+            
+            #add lights
+            light = bpy.ops.object.lamp_add(type='POINT', location=(float(x)/100,float(y)/100,float(z)/100))
+            light = scene.objects['Point']
+            light.name = 'Light_' + str(misc_light)
+            light_node = light.data.node_tree.nodes["Emission"]
+            light_node.inputs["Color"].default_value = (float(r),float(g),float(b), 1.0)
+            light_node.inputs["Strength"].default_value = float(light_value) / 10
 
         #import fitting models
         addedModels = []
